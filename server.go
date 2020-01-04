@@ -1,72 +1,25 @@
 package main
 
 import (
-	"github.com/gorilla/websocket"
-	"gp-websoket/impl"
-	"net/http"
-	"time"
+	"github.com/gin-gonic/gin"
+	"gp-websoket/api"
+	"gp-websoket/database"
+	"gp-websoket/middleware"
 )
 
-const (
-	host = "0.0.0.0:8888"
-)
-
-var (
-	upgrader = websocket.Upgrader{
-		//  allow cors
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-)
+const HOST = "127.0.0.1:8888"
 
 func main() {
-	http.HandleFunc("/ws", wsHandler)
+	database.Migrate()
 
-	http.ListenAndServe(host, nil)
+	r := gin.Default()
+
+	r.POST("/login", api.Login)
+	authorized := r.Group("/").Use(middleware.JWTAuth)
+	authorized.GET("/rooms", api.Rooms)
+	authorized.POST("/rooms", api.CreateRoom)
+	authorized.POST("/rooms/:name/join", api.JoinRoom)
+	authorized.GET("/ws", api.WsHandler)
+
+	r.Run(HOST) // 启动服务并监听
 }
-
-func wsHandler(writer http.ResponseWriter, request *http.Request) {
-	var (
-		wsConn *websocket.Conn
-		conn *impl.Connection
-		data []byte
-		err error
-	)
-
-	// 🤝
-	if wsConn, err = upgrader.Upgrade(writer, request, nil); err != nil {
-		return
-	}
-
-	if conn, err = impl.InitConnection(wsConn); err != nil {
-		goto ERR
-	}
-
-	// heartbeat test connection
-	go func() {
-		var err error
-		for {
-			if err = conn.WriteMessage([]byte("heartbeat")); err != nil {
-				return
-			}
-
-			// heartbeat
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	for {
-		if data, err = conn.ReadMessage(); err != nil {
-			goto ERR
-		}
-
-		if err = conn.WriteMessage(data); err !=nil {
-			goto ERR
-		}
-	}
-
-	ERR:
-		conn.Close()
-}
-
