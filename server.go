@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
 	"gp-websoket/impl"
 	"net/http"
@@ -24,14 +25,16 @@ func main() {
 	http.HandleFunc("/ws", wsHandler)
 
 	http.ListenAndServe(host, nil)
+
+	fmt.Println("listening...")
 }
 
 func wsHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		wsConn *websocket.Conn
-		conn *impl.Connection
-		data []byte
-		err error
+		conn   *impl.Connection
+		data   []byte
+		err    error
 	)
 
 	// 🤝
@@ -61,12 +64,11 @@ func wsHandler(writer http.ResponseWriter, request *http.Request) {
 			goto ERR
 		}
 
-		if err = conn.WriteMessage(data); err !=nil {
+		if err = conn.WriteMessage([]byte("received: " + string(data))); err != nil {
 			goto ERR
 		}
 	}
 
-	ERR:
-		conn.Close()
+ERR:
+	conn.Close()
 }
-
