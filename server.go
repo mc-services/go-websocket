@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/websocket"
-	"gp-websoket/impl"
+	"go-websoket/impl"
 	"net/http"
 	"time"
 )
@@ -22,11 +22,12 @@ var (
 )
 
 func main() {
+	fmt.Println("listening... " + host)
+
 	http.HandleFunc("/ws", wsHandler)
 
 	http.ListenAndServe(host, nil)
 
-	fmt.Println("listening...")
 }
 
 func wsHandler(writer http.ResponseWriter, request *http.Request) {
